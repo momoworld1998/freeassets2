@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard – FreeAssetsHub</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { display: ['Syne','sans-serif'], body: ['DM Sans','sans-serif'] },
+          colors: {
+            brand: { 50:'#f5f3ff',100:'#ede9fe',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',900:'#2e1065' },
+            accent: { 400:'#60a5fa',500:'#3b82f6',600:'#2563eb' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *{box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;}
+    h1,h2,h3,h4{font-family:'Syne',sans-serif;}
+
+    /* Sidebar */
+    #sidebar { width:256px; transition:width .25s ease, transform .25s ease; }
+    #sidebar.collapsed { width:68px; }
+    #sidebar.collapsed .nav-label { display:none; }
+    #sidebar.collapsed .sidebar-logo-text { display:none; }
+    #sidebar.collapsed .nav-badge { display:none; }
+    #sidebar.collapsed .nav-item { justify-content:center; padding:10px; }
+    @media(max-width:768px){
+      #sidebar { position:fixed; top:0; left:0; height:100vh; z-index:50; transform:translateX(-100%); width:256px!important; }
+      #sidebar.mobile-open { transform:translateX(0); }
+      #main-content { margin-left:0!important; }
+    }
+
+    /* Nav item */
+    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px; cursor:pointer; transition:background .15s; font-size:.875rem; font-weight:500; color:#9ca3af; text-decoration:none; }
+    .nav-item:hover { background:rgba(139,92,246,.12); color:#a78bfa; }
+    .nav-item.active { background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(59,130,246,.15)); color:#a78bfa; font-weight:600; }
+    .nav-item svg { flex-shrink:0; width:18px; height:18px; }
+
+    /* Section panels */
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* Cards */
+    .stat-card { background:#1f2937; border:1px solid #374151; border-radius:16px; padding:20px; }
+    .content-card { background:#1f2937; border:1px solid #374151; border-radius:16px; }
+
+    /* Table */
+    .data-table { width:100%; border-collapse:collapse; }
+    .data-table th { padding:12px 16px; text-align:left; font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; border-bottom:1px solid #374151; }
+    .data-table td { padding:12px 16px; font-size:.875rem; color:#d1d5db; border-bottom:1px solid #1f2937; vertical-align:middle; }
+    .data-table tr:hover td { background:#374151; }
+    .data-table tr:last-child td { border-bottom:none; }
+
+    /* Form */
+    .form-label { display:block; font-size:.8125rem; font-weight:600; color:#9ca3af; margin-bottom:5px; }
+    .form-input { width:100%; background:#111827; border:1px solid #374151; border-radius:10px; padding:10px 14px; font-size:.875rem; color:#f9fafb; outline:none; transition:border-color .15s; font-family:'DM Sans',sans-serif; }
+    .form-input:focus { border-color:#7c3aed; }
+    .form-select { width:100%; background:#111827; border:1px solid #374151; border-radius:10px; padding:10px 14px; font-size:.875rem; color:#f9fafb; outline:none; cursor:pointer; font-family:'DM Sans',sans-serif; }
+    .form-textarea { width:100%; background:#111827; border:1px solid #374151; border-radius:10px; padding:10px 14px; font-size:.875rem; color:#f9fafb; outline:none; resize:vertical; font-family:'DM Sans',sans-serif; }
+    .form-textarea:focus,.form-select:focus { border-color:#7c3aed; }
+
+    /* Buttons */
+    .btn-primary { background:linear-gradient(135deg,#7c3aed,#3b82f6); color:white; padding:9px 20px; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; border:none; transition:opacity .15s; }
+    .btn-primary:hover { opacity:.88; }
+    .btn-secondary { background:#374151; color:#d1d5db; padding:9px 20px; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; border:none; transition:background .15s; }
+    .btn-secondary:hover { background:#4b5563; }
+    .btn-danger { background:#dc2626; color:white; padding:7px 14px; border-radius:8px; font-size:.8125rem; font-weight:600; cursor:pointer; border:none; }
+    .btn-danger:hover { background:#b91c1c; }
+    .btn-success { background:#059669; color:white; padding:7px 14px; border-radius:8px; font-size:.8125rem; font-weight:600; cursor:pointer; border:none; }
+    .btn-success:hover { background:#047857; }
+    .btn-warning { background:#d97706; color:white; padding:7px 14px; border-radius:8px; font-size:.8125rem; font-weight:600; cursor:pointer; border:none; }
+    .btn-sm { padding:5px 12px; font-size:.75rem; border-radius:7px; }
+
+    /* Badge */
+    .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:.7rem; font-weight:700; }
+    .badge-green { background:#064e3b; color:#34d399; }
+    .badge-blue { background:#1e3a5f; color:#60a5fa; }
+    .badge-red { background:#450a0a; color:#f87171; }
+    .badge-yellow { background:#451a03; color:#fbbf24; }
+    .badge-purple { background:#2e1065; color:#a78bfa; }
+    .badge-gray { background:#1f2937; color:#9ca3af; }
+
+    /* Upload zone */
+    .upload-zone { border:2px dashed #374151; border-radius:14px; padding:40px 20px; text-align:center; transition:border-color .15s,background .15s; cursor:pointer; }
+    .upload-zone:hover,.upload-zone.dragover { border-color:#7c3aed; background:rgba(139,92,246,.05); }
+
+    /* Toggle switch */
+    .toggle-switch { position:relative; width:44px; height:24px; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; inset:0; background:#374151; border-radius:24px; transition:.3s; cursor:pointer; }
+    .toggle-slider:before { content:''; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; }
+    input:checked + .toggle-slider { background:#7c3aed; }
+    input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+    /* Modal */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); z-index:100; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal-box { background:#1f2937; border:1px solid #374151; border-radius:20px; width:100%; max-width:580px; max-height:90vh; overflow-y:auto; animation:modalIn .25s ease; }
+    @keyframes modalIn { from{opacity:0;transform:translateY(16px) scale(.97)} to{opacity:1;transform:none} }
+
+    /* Progress bar */
+    .progress-bar { height:6px; background:#374151; border-radius:6px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#3b82f6); border-radius:6px; transition:width .5s ease; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:#111827; }
+    ::-webkit-scrollbar-thumb { background:#374151; border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover { background:#4b5563; }
+
+    /* Toast */
+    .toast-container { position:fixed; top:20px; right:20px; z-index:200; display:flex; flex-direction:column; gap:8px; }
+    .toast-item { background:#1f2937; border:1px solid #374151; color:white; padding:12px 16px; border-radius:12px; font-size:.875rem; display:flex; align-items:center; gap:10px; min-width:260px; animation:toastIn .3s ease; }
+    @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
+    .toast-success { border-color:#059669; }
+    .toast-error { border-color:#dc2626; }
+    .toast-warning { border-color:#d97706; }
+
+    /* Image preview thumb */
+    .asset-thumb-sm { width:44px; height:44px; border-radius:8px; object-fit:cover; background:#374151; }
+
+    /* Responsive table */
+    .table-wrapper { overflow-x:auto; }
+
+    /* Color picker */
+    input[type="color"] { width:40px; height:36px; border-radius:8px; border:1px solid #374151; cursor:pointer; background:none; padding:2px; }
+
+    /* Ad slot card */
+    .ad-slot-card { background:#111827; border:1px solid #374151; border-radius:12px; padding:16px; }
+  </style>
+</head>
+
+<body class="bg-gray-950 text-gray-100 font-body">
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ===== OVERLAY (mobile sidebar) ===== -->
+<div id="sidebarOverlay" class="hidden fixed inset-0 bg-black/50 z-40 md:hidden" onclick="closeMobileSidebar()"></div>
+
+<!-- ===== LAYOUT WRAPPER ===== -->
+<div class="flex min-h-screen">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside id="sidebar" class="bg-gray-900 border-r border-gray-800 flex flex-col h-screen sticky top-0 overflow-y-auto overflow-x-hidden">
+    <!-- Logo -->
+    <div class="flex items-center gap-3 px-4 py-5 border-b border-gray-800">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </div>
+      <div class="sidebar-logo-text">
+        <p class="font-display font-bold text-white text-sm leading-tight">FreeAssetsHub</p>
+        <p class="text-gray-500 text-xs">Admin Panel</p>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider px-2 mb-3 nav-label">Main</p>
+
+      <a class="nav-item active" onclick="showPanel('dashboard')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="nav-label">Dashboard</span>
+      </a>
+
+      <a class="nav-item" onclick="showPanel('assets')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="nav-label">Assets</span>
+        <span class="nav-badge ml-auto bg-brand-900 text-brand-400 text-xs px-2 py-0.5 rounded-full">24</span>
+      </a>
+
+      <a class="nav-item" onclick="showPanel('upload')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        <span class="nav-label">Upload Assets</span>
+      </a>
+
+      <a class="nav-item" onclick="showPanel('categories')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <span class="nav-label">Categories</span>
+      </a>
+
+      <a class="nav-item" onclick="showPanel('music')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+        <span class="nav-label">Music Files</span>
+      </a>
+
+      <a class="nav-item" onclick="showPanel('banners')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <span class="nav-label">Homepage Banners</span>
+      </a>
+
+      <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider px-2 mb-3 mt-4 nav-label">Monetization</p>
+
+      <a class="nav-item" onclick="showPanel('ads')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+        <span class="nav-label">Manage Ads</span>
+      </a>
+
+      <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider px-2 mb-3 mt-4 nav-label">Reports</p>
+
+      <a class="nav-item" onclick="showPanel('analytics')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="nav-label">Analytics</span>
+      </a>
+
+      <a class="nav-item" onclick="showPanel('downloads')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span class="nav-label">Download Reports</span>
+      </a>
+
+      <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider px-2 mb-3 mt-4 nav-label">Config</p>
+
+      <a class="nav-item" onclick="showPanel('pages')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span class="nav-label">Page Content</span>
+      </a>
+
+      <a class="nav-item" onclick="showPanel('settings')" href="#">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="nav-label">Website Settings</span>
+      </a>
+    </nav>
+
+    <!-- Bottom: logout -->
+    <div class="px-3 py-4 border-t border-gray-800">
+      <a href="../index.html" target="_blank" class="nav-item mb-1 text-gray-500">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        <span class="nav-label">View Website</span>
+      </a>
+      <a href="#" onclick="adminLogout()" class="nav-item text-red-400 hover:bg-red-900/20">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <span class="nav-label">Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div id="main-content" class="flex-1 flex flex-col min-w-0" style="margin-left:0;">
+
+    <!-- TOP BAR -->
+    <header class="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 sticky top-0 z-30">
+      <div class="flex items-center gap-3">
+        <!-- Collapse sidebar btn -->
+        <button onclick="toggleSidebar()" class="w-9 h-9 rounded-xl bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors flex-shrink-0">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5 text-gray-400"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <!-- Breadcrumb -->
+        <div>
+          <p class="text-sm font-semibold text-white" id="pageTitle">Dashboard</p>
+          <p class="text-xs text-gray-500" id="pageSubtitle">Overview & statistics</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Search -->
+        <div class="hidden sm:flex items-center gap-2 bg-gray-800 rounded-xl px-3 py-2 text-sm">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Quick search…" class="bg-transparent outline-none text-gray-300 placeholder-gray-500 w-36 text-sm" onkeyup="quickSearch(this.value)" />
+        </div>
+        <!-- Notifications -->
+        <button class="relative w-9 h-9 rounded-xl bg-gray-800 hover:bg-gray-700 flex items-center justify-center">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+        <!-- Admin avatar -->
+        <div class="flex items-center gap-2 bg-gray-800 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-gray-700 transition-colors">
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold">A</div>
+          <span class="text-sm font-medium text-gray-300 hidden sm:block">Admin</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- PANELS CONTAINER -->
+    <main class="flex-1 p-4 sm:p-6 overflow-auto">
+
+      <!-- ========== PANEL: DASHBOARD ========== -->
+      <div id="panel-dashboard" class="panel active">
+        <!-- Welcome -->
+        <div class="bg-gradient-to-r from-brand-900 to-accent-600/40 border border-brand-800/50 rounded-2xl p-5 mb-6 flex items-center justify-between">
+          <div>
+            <h2 class="font-display font-bold text-xl text-white mb-1">Welcome back, Admin! 👋</h2>
+            <p class="text-gray-400 text-sm" id="currentDateTime"></p>
+          </div>
+          <button onclick="showPanel('upload')" class="btn-primary hidden sm:flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Upload Asset
+          </button>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-brand-900/50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              <span class="badge badge-green">+12%</span>
+            </div>
+            <p class="text-2xl font-display font-bold text-white" id="totalAssetsCount">24</p>
+            <p class="text-gray-400 text-xs mt-1">Total Assets</p>
+            <div class="progress-bar mt-3"><div class="progress-fill" style="width:65%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-green-900/30 flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              </div>
+              <span class="badge badge-green">+28%</span>
+            </div>
+            <p class="text-2xl font-display font-bold text-white">5,24,310</p>
+            <p class="text-gray-400 text-xs mt-1">Total Downloads</p>
+            <div class="progress-bar mt-3"><div class="progress-fill" style="width:82%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-900/30 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              </div>
+              <span class="badge badge-blue">+7%</span>
+            </div>
+            <p class="text-2xl font-display font-bold text-white">8,942</p>
+            <p class="text-gray-400 text-xs mt-1">Monthly Visitors</p>
+            <div class="progress-bar mt-3"><div class="progress-fill" style="width:55%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-yellow-900/30 flex items-center justify-center">
+                <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <span class="badge badge-yellow">+18%</span>
+            </div>
+            <p class="text-2xl font-display font-bold text-white">₹4,280</p>
+            <p class="text-gray-400 text-xs mt-1">Est. Ad Revenue</p>
+            <div class="progress-bar mt-3"><div class="progress-fill" style="width:48%"></div></div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+          <div class="content-card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-display font-semibold text-white">Downloads Over Time</h3>
+              <select class="bg-gray-800 border-0 text-gray-400 text-xs rounded-lg px-2 py-1 outline-none">
+                <option>Last 7 days</option><option>Last 30 days</option><option>Last 3 months</option>
+              </select>
+            </div>
+            <canvas id="downloadsChart" height="180"></canvas>
+          </div>
+          <div class="content-card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-display font-semibold text-white">Assets by Category</h3>
+            </div>
+            <canvas id="categoryChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent Assets + Quick Actions -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <!-- Recent Assets -->
+          <div class="content-card lg:col-span-2">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h3 class="font-display font-semibold text-white">Recent Assets</h3>
+              <button onclick="showPanel('assets')" class="text-brand-400 text-xs hover:underline">View all</button>
+            </div>
+            <div class="table-wrapper">
+              <table class="data-table" id="recentAssetsTable"></table>
+            </div>
+          </div>
+          <!-- Quick Actions -->
+          <div class="content-card">
+            <div class="px-5 py-4 border-b border-gray-800">
+              <h3 class="font-display font-semibold text-white">Quick Actions</h3>
+            </div>
+            <div class="p-4 space-y-3">
+              <button onclick="showPanel('upload')" class="w-full flex items-center gap-3 p-3 bg-brand-900/30 hover:bg-brand-900/50 rounded-xl transition-colors text-left">
+                <div class="w-9 h-9 rounded-lg bg-brand-800/50 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </div>
+                <div><p class="text-sm font-semibold text-white">Upload New Asset</p><p class="text-xs text-gray-400">Add to any category</p></div>
+              </button>
+              <button onclick="showPanel('categories')" class="w-full flex items-center gap-3 p-3 bg-blue-900/20 hover:bg-blue-900/30 rounded-xl transition-colors text-left">
+                <div class="w-9 h-9 rounded-lg bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+                <div><p class="text-sm font-semibold text-white">Manage Categories</p><p class="text-xs text-gray-400">Add / edit categories</p></div>
+              </button>
+              <button onclick="showPanel('ads')" class="w-full flex items-center gap-3 p-3 bg-yellow-900/20 hover:bg-yellow-900/30 rounded-xl transition-colors text-left">
+                <div class="w-9 h-9 rounded-lg bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/></svg>
+                </div>
+                <div><p class="text-sm font-semibold text-white">Update Ad Settings</p><p class="text-xs text-gray-400">Publisher ID & slots</p></div>
+              </button>
+              <button onclick="showPanel('banners')" class="w-full flex items-center gap-3 p-3 bg-green-900/20 hover:bg-green-900/30 rounded-xl transition-colors text-left">
+                <div class="w-9 h-9 rounded-lg bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                </div>
+                <div><p class="text-sm font-semibold text-white">Edit Homepage Banner</p><p class="text-xs text-gray-400">Hero section & SEO</p></div>
+              </button>
+              <button onclick="showPanel('settings')" class="w-full flex items-center gap-3 p-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors text-left">
+                <div class="w-9 h-9 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+                </div>
+                <div><p class="text-sm font-semibold text-white">Website Settings</p><p class="text-xs text-gray-400">SEO, contact, theme</p></div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: ASSETS MANAGEMENT ========== -->
+      <div id="panel-assets" class="panel">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="font-display font-bold text-xl text-white">Assets Management</h2>
+            <p class="text-gray-400 text-sm">Edit, delete or feature any asset on the website</p>
+          </div>
+          <button onclick="showPanel('upload')" class="btn-primary flex items-center gap-2 w-fit">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add New Asset
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="content-card p-4 mb-5">
+          <div class="flex flex-wrap gap-3">
+            <input type="text" id="assetSearch" placeholder="🔍 Search by title…" oninput="filterAssetsTable()" class="form-input flex-1 min-w-48" style="max-width:280px;" />
+            <select id="assetCatFilter" onchange="filterAssetsTable()" class="form-select" style="width:auto;">
+              <option value="">All Categories</option>
+            </select>
+            <select id="assetFmtFilter" onchange="filterAssetsTable()" class="form-select" style="width:auto;">
+              <option value="">All Formats</option>
+              <option>PNG</option><option>JPG</option><option>GIF</option><option>MP4</option><option>MP3</option><option>PSD</option><option>ZIP</option>
+            </select>
+            <button onclick="exportCSV()" class="btn-secondary flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Assets Table -->
+        <div class="content-card">
+          <div class="table-wrapper">
+            <table class="data-table" id="fullAssetsTable">
+              <thead>
+                <tr>
+                  <th style="width:40px;"><input type="checkbox" class="rounded" onchange="selectAllAssets(this)" /></th>
+                  <th>Asset</th><th>Category</th><th>Format</th><th>Downloads</th><th>Status</th><th>Featured</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="assetsTableBody"></tbody>
+            </table>
+          </div>
+          <div class="px-5 py-3 border-t border-gray-800 flex items-center justify-between text-xs text-gray-500">
+            <span id="assetCountInfo">Showing all assets</span>
+            <div class="flex gap-2">
+              <button id="bulkDeleteBtn" onclick="bulkDeleteAssets()" class="hidden btn-danger btn-sm">Delete Selected</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: UPLOAD ========== -->
+      <div id="panel-upload" class="panel">
+        <div class="mb-6">
+          <h2 class="font-display font-bold text-xl text-white">Upload New Asset</h2>
+          <p class="text-gray-400 text-sm">Add a new downloadable asset to the website</p>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Upload Form -->
+          <div class="lg:col-span-2 space-y-5">
+            <div class="content-card p-5 space-y-4">
+              <h3 class="font-display font-semibold text-white mb-2">Asset Details</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label">Asset Title *</label>
+                  <input type="text" id="newTitle" class="form-input" placeholder="e.g. Sunset 4K Wallpaper" />
+                </div>
+                <div>
+                  <label class="form-label">Category *</label>
+                  <select id="newCategory" class="form-select"></select>
+                </div>
+                <div>
+                  <label class="form-label">File Format *</label>
+                  <select id="newFormat" class="form-select">
+                    <option>PNG</option><option>JPG</option><option>GIF</option><option>MP4</option><option>MP3</option><option>PSD</option><option>ZIP</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">File Size</label>
+                  <input type="text" id="newSize" class="form-input" placeholder="e.g. 2.5MB" />
+                </div>
+                <div>
+                  <label class="form-label">Download URL *</label>
+                  <input type="text" id="newDownloadUrl" class="form-input" placeholder="https://your-cdn.com/file.png" />
+                </div>
+                <div>
+                  <label class="form-label">Thumbnail URL *</label>
+                  <input type="text" id="newThumb" class="form-input" placeholder="https://cdn.com/thumb.jpg" oninput="updateThumbPreview()" />
+                </div>
+              </div>
+              <div>
+                <label class="form-label">Tags (comma separated)</label>
+                <input type="text" id="newTags" class="form-input" placeholder="trending, new, hd, animated, free" />
+              </div>
+              <div>
+                <label class="form-label">Description (optional)</label>
+                <textarea id="newDesc" class="form-textarea" rows="3" placeholder="Brief description of this asset…"></textarea>
+              </div>
+              <div class="flex items-center gap-6">
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <label class="toggle-switch"><input type="checkbox" id="newFeatured" /><span class="toggle-slider"></span></label>
+                  <span class="text-sm text-gray-300">Mark as Featured</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <label class="toggle-switch"><input type="checkbox" id="newPublished" checked /><span class="toggle-slider"></span></label>
+                  <span class="text-sm text-gray-300">Publish Immediately</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- File Upload Zone -->
+            <div class="content-card p-5">
+              <h3 class="font-display font-semibold text-white mb-3">Upload File</h3>
+              <div class="upload-zone" id="uploadZone" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)" onclick="document.getElementById('fileInput').click()">
+                <div class="w-14 h-14 rounded-2xl bg-brand-900/40 flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-7 h-7 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                </div>
+                <p class="text-white font-semibold mb-1">Drag & Drop file here</p>
+                <p class="text-gray-400 text-sm">or <span class="text-brand-400">click to browse</span></p>
+                <p class="text-gray-500 text-xs mt-2">PNG, JPG, GIF, MP4, MP3, PSD, ZIP — Max 50MB</p>
+                <input type="file" id="fileInput" class="hidden" onchange="fileSelected(this)" />
+              </div>
+              <div id="uploadProgress" class="hidden mt-3">
+                <div class="flex items-center justify-between text-sm text-gray-400 mb-1">
+                  <span id="uploadFileName">filename.png</span>
+                  <span id="uploadPercent">0%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="uploadBar" style="width:0%"></div></div>
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button onclick="saveNewAsset()" class="btn-primary flex-1 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Save & Publish Asset
+              </button>
+              <button onclick="resetUploadForm()" class="btn-secondary">Reset</button>
+            </div>
+          </div>
+
+          <!-- Preview Panel -->
+          <div class="space-y-4">
+            <div class="content-card p-4">
+              <h3 class="font-display font-semibold text-white mb-3">Preview</h3>
+              <div class="bg-gray-800 rounded-xl overflow-hidden mb-3" style="aspect-ratio:4/5;">
+                <img id="thumbPreviewImg" src="" alt="Thumbnail preview" class="w-full h-full object-cover hidden" />
+                <div id="thumbPreviewPlaceholder" class="w-full h-full flex items-center justify-center text-gray-600 text-5xl">🖼</div>
+              </div>
+              <p id="thumbPreviewTitle" class="text-sm font-semibold text-gray-300 truncate text-center">Asset title will appear here</p>
+            </div>
+
+            <!-- Bulk Upload -->
+            <div class="content-card p-4">
+              <h3 class="font-display font-semibold text-white mb-2">Bulk Upload</h3>
+              <p class="text-gray-400 text-xs mb-3">Upload multiple assets at once via CSV or ZIP.</p>
+              <div class="space-y-2">
+                <button onclick="triggerBulkUpload()" class="w-full btn-secondary text-sm">📦 Upload ZIP Archive</button>
+                <button onclick="triggerCSVUpload()" class="w-full btn-secondary text-sm">📋 Import from CSV</button>
+                <a href="#" onclick="downloadCSVTemplate()" class="block text-center text-brand-400 text-xs hover:underline mt-1">Download CSV Template</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: CATEGORIES ========== -->
+      <div id="panel-categories" class="panel">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="font-display font-bold text-xl text-white">Manage Categories</h2>
+            <p class="text-gray-400 text-sm">Add, edit or remove asset categories</p>
+          </div>
+          <button onclick="openAddCategoryModal()" class="btn-primary flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Category
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="categoriesAdminGrid"></div>
+      </div>
+
+      <!-- ========== PANEL: MUSIC ========== -->
+      <div id="panel-music" class="panel">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="font-display font-bold text-xl text-white">Music Files</h2>
+            <p class="text-gray-400 text-sm">Manage copyright-free background music</p>
+          </div>
+          <button onclick="openAddMusicModal()" class="btn-primary flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Music
+          </button>
+        </div>
+        <div class="content-card">
+          <div class="table-wrapper">
+            <table class="data-table" id="musicTable">
+              <thead><tr><th>Title</th><th>Genre</th><th>Duration</th><th>BPM</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="musicTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: BANNERS ========== -->
+      <div id="panel-banners" class="panel">
+        <div class="mb-6">
+          <h2 class="font-display font-bold text-xl text-white">Homepage Banner Control</h2>
+          <p class="text-gray-400 text-sm">Edit the hero section, trending section headings, and page content</p>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Hero Section Control -->
+          <div class="content-card p-5 space-y-4">
+            <h3 class="font-display font-semibold text-white">🦸 Hero Section</h3>
+            <div>
+              <label class="form-label">Hero Title (line 1)</label>
+              <input type="text" id="heroTitle1" class="form-input" value="Download Free" />
+            </div>
+            <div>
+              <label class="form-label">Hero Title (line 2 — gradient text)</label>
+              <input type="text" id="heroTitle2" class="form-input" value="Digital Assets" />
+            </div>
+            <div>
+              <label class="form-label">Hero Subtitle</label>
+              <textarea id="heroSubtitle" class="form-textarea" rows="2">Templates, wallpapers, music, GIFs, invitation cards & more. 100% copyright-free.</textarea>
+            </div>
+            <div>
+              <label class="form-label">Search Bar Placeholder</label>
+              <input type="text" id="heroSearchPlaceholder" class="form-input" value="Search wallpapers, templates, music..." />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="form-label">Stat 1 (Number)</label>
+                <input type="text" id="stat1Num" class="form-input" value="10K+" />
+              </div>
+              <div>
+                <label class="form-label">Stat 1 (Label)</label>
+                <input type="text" id="stat1Label" class="form-input" value="Free Assets" />
+              </div>
+              <div>
+                <label class="form-label">Stat 2 (Number)</label>
+                <input type="text" id="stat2Num" class="form-input" value="500K+" />
+              </div>
+              <div>
+                <label class="form-label">Stat 2 (Label)</label>
+                <input type="text" id="stat2Label" class="form-input" value="Downloads" />
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <label class="toggle-switch"><input type="checkbox" id="heroVisible" checked /><span class="toggle-slider"></span></label>
+                <span class="text-sm text-gray-300">Show Hero Section</span>
+              </label>
+              <button onclick="saveBannerSettings()" class="btn-primary">Save Changes</button>
+            </div>
+          </div>
+
+          <!-- Section Visibility -->
+          <div class="content-card p-5">
+            <h3 class="font-display font-semibold text-white mb-4">📋 Section Visibility</h3>
+            <div class="space-y-4" id="sectionToggles">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Announcement Bar -->
+          <div class="content-card p-5 space-y-4">
+            <h3 class="font-display font-semibold text-white">📣 Announcement Bar</h3>
+            <div>
+              <label class="form-label">Announcement Text</label>
+              <input type="text" id="announcementText" class="form-input" placeholder="e.g. 🎉 New Festival templates added! Check them out." />
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <label class="toggle-switch"><input type="checkbox" id="announcementEnabled" /><span class="toggle-slider"></span></label>
+                <span class="text-sm text-gray-300">Show Announcement Bar</span>
+              </label>
+              <select id="announcementColor" class="form-select" style="width:auto;">
+                <option value="brand">Purple</option><option value="green">Green</option><option value="red">Red</option><option value="blue">Blue</option>
+              </select>
+            </div>
+            <button onclick="saveAnnouncement()" class="btn-primary w-full">Save Announcement</button>
+          </div>
+
+          <!-- Trending Keywords -->
+          <div class="content-card p-5 space-y-4">
+            <h3 class="font-display font-semibold text-white">🔥 Trending Keywords</h3>
+            <p class="text-gray-400 text-xs">Comma separated list shown on homepage and search</p>
+            <textarea id="trendingKeywords" class="form-textarea" rows="3">Instagram Templates, Wedding Cards, 4K Wallpapers, YouTube Thumbnails, Free Music, Diwali Greetings</textarea>
+            <button onclick="saveTrendingKeywords()" class="btn-primary w-full">Update Keywords</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: ADS MANAGEMENT ========== -->
+      <div id="panel-ads" class="panel">
+        <div class="mb-6">
+          <h2 class="font-display font-bold text-xl text-white">Google AdSense Management</h2>
+          <p class="text-gray-400 text-sm">Configure your Publisher ID and all ad slot IDs</p>
+        </div>
+
+        <!-- Publisher Config -->
+        <div class="content-card p-5 mb-5 border-l-4 border-yellow-500">
+          <h3 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            AdSense Publisher Configuration
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="form-label">Publisher ID *</label>
+              <input type="text" id="publisherId" class="form-input font-mono" placeholder="ca-pub-XXXXXXXXXXXXXXXX" value="ca-pub-XXXXXXXXXXXXXXXX" />
+              <p class="text-gray-500 text-xs mt-1">Found in your AdSense account → Account → Account info</p>
+            </div>
+            <div>
+              <label class="form-label">Auto Ads</label>
+              <div class="flex items-center gap-3 mt-2">
+                <label class="toggle-switch"><input type="checkbox" id="autoAdsEnabled" checked /><span class="toggle-slider"></span></label>
+                <span class="text-sm text-gray-300">Enable Auto Ads</span>
+              </div>
+              <p class="text-gray-500 text-xs mt-2">Auto Ads automatically places ads in best positions</p>
+            </div>
+          </div>
+          <button onclick="saveAdConfig()" class="btn-primary flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            Save Publisher Config
+          </button>
+        </div>
+
+        <!-- Ad Slots -->
+        <h3 class="font-display font-semibold text-white mb-4">Ad Slot IDs</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="adSlotsGrid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Rewarded Ad Settings -->
+        <div class="content-card p-5 mt-5">
+          <h3 class="font-display font-semibold text-white mb-4">⏱ Download Unlock Timer</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="form-label">Countdown Seconds</label>
+              <input type="number" id="countdownSecs" class="form-input" value="5" min="3" max="30" />
+              <p class="text-gray-500 text-xs mt-1">Seconds before download unlocks (3–30)</p>
+            </div>
+            <div>
+              <label class="form-label">Show Ad in Modal</label>
+              <div class="flex items-center gap-3 mt-2">
+                <label class="toggle-switch"><input type="checkbox" id="showModalAd" checked /><span class="toggle-slider"></span></label>
+                <span class="text-sm text-gray-300">Enabled</span>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Sticky Mobile Ad</label>
+              <div class="flex items-center gap-3 mt-2">
+                <label class="toggle-switch"><input type="checkbox" id="showStickyAd" checked /><span class="toggle-slider"></span></label>
+                <span class="text-sm text-gray-300">Enabled</span>
+              </div>
+            </div>
+          </div>
+          <button onclick="saveDownloadSettings()" class="btn-primary mt-4">Save Download Settings</button>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: ANALYTICS ========== -->
+      <div id="panel-analytics" class="panel">
+        <div class="mb-6">
+          <h2 class="font-display font-bold text-xl text-white">Analytics Dashboard</h2>
+          <p class="text-gray-400 text-sm">Traffic stats, download trends and top performing assets</p>
+        </div>
+        <!-- Big stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="stat-card text-center">
+            <p class="text-3xl font-display font-bold text-white mb-1">8,942</p>
+            <p class="text-gray-400 text-xs">Monthly Visitors</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-3xl font-display font-bold text-green-400 mb-1">5.24L</p>
+            <p class="text-gray-400 text-xs">Total Downloads</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-3xl font-display font-bold text-yellow-400 mb-1">3:42</p>
+            <p class="text-gray-400 text-xs">Avg. Session Time</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-3xl font-display font-bold text-brand-400 mb-1">4.8%</p>
+            <p class="text-gray-400 text-xs">Ad CTR</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+          <div class="content-card p-5">
+            <h3 class="font-display font-semibold text-white mb-4">Weekly Downloads</h3>
+            <canvas id="weeklyChart" height="200"></canvas>
+          </div>
+          <div class="content-card p-5">
+            <h3 class="font-display font-semibold text-white mb-4">Traffic Sources</h3>
+            <canvas id="trafficChart" height="200"></canvas>
+          </div>
+        </div>
+        <!-- Top assets -->
+        <div class="content-card">
+          <div class="px-5 py-4 border-b border-gray-800">
+            <h3 class="font-display font-semibold text-white">Top 10 Downloaded Assets</h3>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table" id="topDownloadsTable">
+              <thead><tr><th>#</th><th>Asset</th><th>Category</th><th>Downloads</th><th>Likes</th><th>Growth</th></tr></thead>
+              <tbody id="topDownloadsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: DOWNLOAD REPORTS ========== -->
+      <div id="panel-downloads" class="panel">
+        <div class="mb-6">
+          <h2 class="font-display font-bold text-xl text-white">Download Reports</h2>
+          <p class="text-gray-400 text-sm">Track all download activity and export reports</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="stat-card"><p class="text-2xl font-bold text-white">5,24,310</p><p class="text-gray-400 text-xs mt-1">Total All-Time Downloads</p></div>
+          <div class="stat-card"><p class="text-2xl font-bold text-green-400">1,240</p><p class="text-gray-400 text-xs mt-1">Downloads Today</p></div>
+          <div class="stat-card"><p class="text-2xl font-bold text-blue-400">28,430</p><p class="text-gray-400 text-xs mt-1">Downloads This Month</p></div>
+        </div>
+        <div class="content-card p-4 mb-5 flex flex-wrap gap-3 items-center">
+          <input type="date" id="reportFromDate" class="form-input" style="width:auto;" />
+          <span class="text-gray-400">to</span>
+          <input type="date" id="reportToDate" class="form-input" style="width:auto;" />
+          <select id="reportCatFilter" class="form-select" style="width:auto;"><option value="">All Categories</option></select>
+          <button onclick="generateReport()" class="btn-primary">Generate Report</button>
+          <button onclick="exportDownloadCSV()" class="btn-secondary flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg> Export CSV</button>
+        </div>
+        <div class="content-card">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Asset</th><th>Category</th><th>Format</th><th>Downloads</th><th>Last Download</th><th>Revenue Est.</th></tr></thead>
+              <tbody id="downloadReportBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PANEL: PAGE CONTENT ========== -->
+      <div id="panel-pages" class="panel">
+        <div class="mb-6">
+          <h2 class="font-display font-bold text-xl text-white">Page Content Editor</h2>
+          <p class="text-gray-400 text-sm">Edit About, Contact, Privacy, Terms, DMCA page content</p>
+        </div>
+        <!-- Page selector -->
+        <div class="flex flex-wrap gap-2 mb-6">
+          <button onclick="selectPageEdit('about')" id="pg-about" class="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 text-white transition-all">About Us</button>
+          <button onclick="selectPageEdit('contact')" id="pg-contact" class="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all">Contact</button>
+          <button onclick="selectPageEdit('privacy')" id="pg-privacy" class="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all">Privacy Policy</button>
+          <button onclick="selectPageEdit('terms')" id="pg-terms" class="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all">Terms</button>
+          <button onclick="selectPageEdit('dmca')" id="pg-dmca" class="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all">DMCA</button>
+        </div>
+        <div class="content-card p-5 space-y-4" id="pageEditorPanel">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- ========== PANEL: SETTINGS ========== -->
+      <div id="panel-settings" class="panel">
+        <div class="mb-6">
+          <h2 class="font-display font-bold text-xl text-white">Website Settings</h2>
+          <p class="text-gray-400 text-sm">SEO, contact info, appearance, and admin password</p>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- SEO Settings -->
+          <div class="content-card p-5 space-y-4">
+            <h3 class="font-display font-semibold text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              SEO Settings
+            </h3>
+            <div>
+              <label class="form-label">Website Name</label>
+              <input type="text" id="seoSiteName" class="form-input" value="FreeAssetsHub" />
+            </div>
+            <div>
+              <label class="form-label">Meta Description</label>
+              <textarea id="seoDescription" class="form-textarea" rows="3">Download 10,000+ free copyright-free digital assets including Instagram templates, wallpapers, music, GIFs, invitation cards, and more. No login required!</textarea>
+            </div>
+            <div>
+              <label class="form-label">Meta Keywords</label>
+              <input type="text" id="seoKeywords" class="form-input" value="free digital assets, instagram templates, wallpapers, free music" />
+            </div>
+            <div>
+              <label class="form-label">Website URL</label>
+              <input type="text" id="seoUrl" class="form-input" value="https://freeassetshub.com" />
+            </div>
+            <div>
+              <label class="form-label">OG Image URL</label>
+              <input type="text" id="seoOgImage" class="form-input" placeholder="https://freeassetshub.com/og-image.jpg" />
+            </div>
+            <button onclick="saveSEOSettings()" class="btn-primary w-full">Save SEO Settings</button>
+          </div>
+
+          <!-- Contact Info -->
+          <div class="content-card p-5 space-y-4">
+            <h3 class="font-display font-semibold text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              Contact Information
+            </h3>
+            <div>
+              <label class="form-label">Phone Number</label>
+              <input type="text" id="contactPhone" class="form-input" value="+91 88176 44730" />
+            </div>
+            <div>
+              <label class="form-label">Email Address</label>
+              <input type="email" id="contactEmail" class="form-input" value="croma.laxmielectronics@gmail.com" />
+            </div>
+            <div>
+              <label class="form-label">WhatsApp Number (with country code)</label>
+              <input type="text" id="contactWhatsapp" class="form-input" value="918817644730" />
+            </div>
+            <div>
+              <label class="form-label">Telegram Channel/Username</label>
+              <input type="text" id="contactTelegram" class="form-input" value="freeassetshub" />
+            </div>
+            <button onclick="saveContactInfo()" class="btn-primary w-full">Save Contact Info</button>
+          </div>
+
+          <!-- Admin Password -->
+          <div class="content-card p-5 space-y-4">
+            <h3 class="font-display font-semibold text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              Change Admin Password
+            </h3>
+            <div>
+              <label class="form-label">Current Password</label>
+              <input type="password" id="oldPass" class="form-input" placeholder="Enter current password" />
+            </div>
+            <div>
+              <label class="form-label">New Password</label>
+              <input type="password" id="newPass" class="form-input" placeholder="Min 8 characters" />
+            </div>
+            <div>
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" id="confirmPass" class="form-input" placeholder="Re-enter new password" />
+            </div>
+            <button onclick="changePassword()" class="btn-primary w-full">Change Password</button>
+          </div>
+
+          <!-- Appearance -->
+          <div class="content-card p-5 space-y-4">
+            <h3 class="font-display font-semibold text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+              Appearance
+            </h3>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-300">Default Theme</span>
+              <select id="defaultTheme" class="form-select" style="width:auto;">
+                <option value="light">☀️ Light</option><option value="dark" selected>🌙 Dark</option><option value="system">🖥 System</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-300">Primary Brand Color</span>
+              <div class="flex items-center gap-2">
+                <input type="color" id="brandColor" value="#7c3aed" />
+                <span id="brandColorHex" class="text-gray-400 text-sm font-mono">#7c3aed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-300">Accent Color</span>
+              <div class="flex items-center gap-2">
+                <input type="color" id="accentColor" value="#3b82f6" />
+                <span id="accentColorHex" class="text-gray-400 text-sm font-mono">#3b82f6</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-300">Assets Per Page</span>
+              <input type="number" id="assetsPerPage" class="form-input" value="20" style="width:80px;" min="8" max="100" />
+            </div>
+            <button onclick="saveAppearance()" class="btn-primary w-full">Save Appearance</button>
+          </div>
+
+          <!-- Maintenance -->
+          <div class="content-card p-5 space-y-4 lg:col-span-2">
+            <h3 class="font-display font-semibold text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+              System & Maintenance
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="flex items-center justify-between p-3 bg-gray-800 rounded-xl">
+                <div>
+                  <p class="text-sm font-medium text-white">Maintenance Mode</p>
+                  <p class="text-xs text-gray-400">Show maintenance page</p>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="maintenanceMode" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-800 rounded-xl">
+                <div>
+                  <p class="text-sm font-medium text-white">Download Without Ad</p>
+                  <p class="text-xs text-gray-400">Skip ad for testing</p>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="skipAd" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-800 rounded-xl">
+                <div>
+                  <p class="text-sm font-medium text-white">Watermark on Preview</p>
+                  <p class="text-xs text-gray-400">Overlay on preview images</p>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="watermarkEnabled" checked /><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-3 pt-2">
+              <button onclick="clearCache()" class="btn-secondary flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Clear Cache</button>
+              <button onclick="generateSitemap()" class="btn-secondary flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg> Generate Sitemap</button>
+              <button onclick="backupData()" class="btn-secondary flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg> Backup Data</button>
+              <button onclick="saveAllSettings()" class="btn-primary flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Save All Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===== EDIT ASSET MODAL ===== -->
+<div id="editAssetModal" class="modal-backdrop hidden">
+  <div class="modal-box">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+      <h3 class="font-display font-bold text-white">Edit Asset</h3>
+      <button onclick="closeEditModal()" class="text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="editAssetId" />
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Title</label>
+          <input type="text" id="editTitle" class="form-input" />
+        </div>
+        <div>
+          <label class="form-label">Category</label>
+          <select id="editCategory" class="form-select"></select>
+        </div>
+        <div>
+          <label class="form-label">Format</label>
+          <select id="editFormat" class="form-select">
+            <option>PNG</option><option>JPG</option><option>GIF</option><option>MP4</option><option>MP3</option><option>PSD</option><option>ZIP</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">File Size</label>
+          <input type="text" id="editSize" class="form-input" />
+        </div>
+        <div>
+          <label class="form-label">Thumbnail URL</label>
+          <input type="text" id="editThumb" class="form-input" oninput="updateEditThumbPreview()" />
+        </div>
+        <div>
+          <label class="form-label">Download URL</label>
+          <input type="text" id="editDownloadUrl" class="form-input" />
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Tags (comma separated)</label>
+        <input type="text" id="editTags" class="form-input" placeholder="trending, new, hd, animated, free" />
+      </div>
+      <div class="flex gap-4">
+        <div class="flex items-center gap-2">
+          <label class="toggle-switch"><input type="checkbox" id="editFeatured" /><span class="toggle-slider"></span></label>
+          <span class="text-sm text-gray-300">Featured</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="toggle-switch"><input type="checkbox" id="editPublished" checked /><span class="toggle-slider"></span></label>
+          <span class="text-sm text-gray-300">Published</span>
+        </div>
+      </div>
+      <!-- Thumb preview -->
+      <div class="flex gap-4 items-start">
+        <img id="editThumbPreview" src="" alt="" class="w-20 h-20 rounded-xl object-cover bg-gray-800 hidden" />
+        <div id="editThumbPlaceholder" class="w-20 h-20 rounded-xl bg-gray-800 flex items-center justify-center text-3xl">🖼</div>
+      </div>
+    </div>
+    <div class="flex gap-3 px-6 py-4 border-t border-gray-700">
+      <button onclick="saveEditedAsset()" class="btn-primary flex-1">Save Changes</button>
+      <button onclick="closeEditModal()" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD CATEGORY MODAL ===== -->
+<div id="addCategoryModal" class="modal-backdrop hidden">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+      <h3 id="catModalTitle" class="font-display font-bold text-white">Add Category</h3>
+      <button onclick="closeCatModal()" class="text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="editCatId" />
+      <div>
+        <label class="form-label">Category Name *</label>
+        <input type="text" id="catName" class="form-input" placeholder="e.g. Festival Cards" />
+      </div>
+      <div>
+        <label class="form-label">Category ID (URL-safe) *</label>
+        <input type="text" id="catId" class="form-input" placeholder="e.g. festival-cards" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')" />
+      </div>
+      <div>
+        <label class="form-label">Emoji Icon *</label>
+        <input type="text" id="catEmoji" class="form-input" placeholder="🎉" maxlength="4" />
+      </div>
+      <div>
+        <label class="form-label">Asset Count</label>
+        <input type="number" id="catCount" class="form-input" placeholder="0" value="0" />
+      </div>
+      <div>
+        <label class="form-label">Gradient Color</label>
+        <select id="catColor" class="form-select">
+          <option value="from-pink-500 to-orange-400">Pink → Orange</option>
+          <option value="from-blue-500 to-cyan-400">Blue → Cyan</option>
+          <option value="from-purple-600 to-pink-500">Purple → Pink</option>
+          <option value="from-green-500 to-emerald-400">Green → Emerald</option>
+          <option value="from-red-500 to-pink-500">Red → Pink</option>
+          <option value="from-yellow-500 to-orange-400">Yellow → Orange</option>
+          <option value="from-indigo-500 to-purple-500">Indigo → Purple</option>
+          <option value="from-teal-500 to-cyan-500">Teal → Cyan</option>
+          <option value="from-rose-500 to-red-400">Rose → Red</option>
+          <option value="from-amber-500 to-yellow-400">Amber → Yellow</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex gap-3 px-6 py-4 border-t border-gray-700">
+      <button onclick="saveCategoryModal()" class="btn-primary flex-1">Save Category</button>
+      <button onclick="closeCatModal()" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD MUSIC MODAL ===== -->
+<div id="addMusicModal" class="modal-backdrop hidden">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+      <h3 id="musicModalTitle" class="font-display font-bold text-white">Add Music Track</h3>
+      <button onclick="closeMusicModal()" class="text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="editMusicId" />
+      <div>
+        <label class="form-label">Track Title *</label>
+        <input type="text" id="musicTitle" class="form-input" placeholder="e.g. Chill Lofi Study" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Genre</label>
+          <input type="text" id="musicGenre" class="form-input" placeholder="Lofi" />
+        </div>
+        <div>
+          <label class="form-label">Duration</label>
+          <input type="text" id="musicDuration" class="form-input" placeholder="3:24" />
+        </div>
+        <div>
+          <label class="form-label">BPM</label>
+          <input type="number" id="musicBpm" class="form-input" placeholder="72" />
+        </div>
+        <div>
+          <label class="form-label">File URL</label>
+          <input type="text" id="musicUrl" class="form-input" placeholder="https://cdn.com/track.mp3" />
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 px-6 py-4 border-t border-gray-700">
+      <button onclick="saveMusicModal()" class="btn-primary flex-1">Save Track</button>
+      <button onclick="closeMusicModal()" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DELETE CONFIRM MODAL ===== -->
+<div id="deleteConfirmModal" class="modal-backdrop hidden">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="p-6 text-center">
+      <div class="w-14 h-14 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <h3 class="font-display font-bold text-xl text-white mb-2">Delete Asset?</h3>
+      <p class="text-gray-400 text-sm mb-6" id="deleteConfirmMsg">This action cannot be undone. The asset will be permanently removed.</p>
+      <div class="flex gap-3">
+        <button onclick="confirmDelete()" class="btn-danger flex-1 py-2.5 rounded-xl">Yes, Delete</button>
+        <button onclick="document.getElementById('deleteConfirmModal').classList.add('hidden')" class="btn-secondary flex-1 py-2.5 rounded-xl">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Load data.js then run admin logic -->
+<script src="../js/data.js"></script>
+<script>
+// ================================================================
+// ADMIN PANEL — Full JavaScript Logic
+// ================================================================
+
+// ---- Auth Guard ----
+if (localStorage.getItem('adminAuth') !== 'true') window.location.href = 'login.html';
+
+// ---- Working data stores (localStorage backed) ----
+let adminAssets    = JSON.parse(localStorage.getItem('adminAssets') || 'null') || JSON.parse(JSON.stringify(ASSETS));
+let adminCats      = JSON.parse(localStorage.getItem('adminCats')   || 'null') || JSON.parse(JSON.stringify(CATEGORIES));
+let adminMusic     = JSON.parse(localStorage.getItem('adminMusic')  || 'null') || JSON.parse(JSON.stringify(MUSIC_SAMPLES));
+let adminSettings  = JSON.parse(localStorage.getItem('adminSettings') || '{}');
+let deleteTargetId = null;
+let deleteTargetType = 'asset';
+let currentEditCatId = null;
+let currentEditMusicId = null;
+
+function saveToStorage() {
+  localStorage.setItem('adminAssets',   JSON.stringify(adminAssets));
+  localStorage.setItem('adminCats',     JSON.stringify(adminCats));
+  localStorage.setItem('adminMusic',    JSON.stringify(adminMusic));
+  localStorage.setItem('adminSettings', JSON.stringify(adminSettings));
+}
+
+// ---- DOM Ready ----
+document.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
+  updateDateTime();
+  setInterval(updateDateTime, 60000);
+  buildCharts();
+  buildRecentAssetsTable();
+  buildFullAssetsTable();
+  populateCategoryDropdowns();
+  buildCategoriesAdminGrid();
+  buildMusicTable();
+  buildAdSlots();
+  buildSectionToggles();
+  buildAnalyticsCharts();
+  buildTopDownloadsTable();
+  buildDownloadReport();
+  selectPageEdit('about');
+  loadSettings();
+  document.getElementById('brandColor').addEventListener('input', function(){ document.getElementById('brandColorHex').textContent = this.value; });
+  document.getElementById('accentColor').addEventListener('input', function(){ document.getElementById('accentColorHex').textContent = this.value; });
+});
+
+// ---- NAVIGATION ----
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const titles = {
+    dashboard:   ['Dashboard',          'Overview & statistics'],
+    assets:      ['Assets Management',  'Edit, delete or feature assets'],
+    upload:      ['Upload Asset',       'Add new downloadable content'],
+    categories:  ['Categories',         'Manage all 20 categories'],
+    music:       ['Music Files',        'Manage copyright-free tracks'],
+    banners:     ['Homepage Banners',   'Hero section & content control'],
+    ads:         ['Ad Management',      'Google AdSense configuration'],
+    analytics:   ['Analytics',          'Traffic & download stats'],
+    downloads:   ['Download Reports',   'Track all download activity'],
+    pages:       ['Page Content',       'Edit legal & info pages'],
+    settings:    ['Website Settings',   'SEO, contact & appearance'],
+  };
+  const t = titles[id] || [id, ''];
+  document.getElementById('pageTitle').textContent      = t[0];
+  document.getElementById('pageSubtitle').textContent   = t[1];
+
+  // Close mobile sidebar
+  closeMobileSidebar();
+  // Rebuild assets table in case data changed
+  if (id === 'assets') buildFullAssetsTable();
+  if (id === 'categories') buildCategoriesAdminGrid();
+  if (id === 'music') buildMusicTable();
+  if (id === 'analytics') { buildAnalyticsCharts(); buildTopDownloadsTable(); }
+  if (id === 'downloads') buildDownloadReport();
+  lucide.createIcons();
+}
+
+// ---- SIDEBAR TOGGLE ----
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (window.innerWidth < 768) {
+    sidebar.classList.toggle('mobile-open');
+    document.getElementById('sidebarOverlay').classList.toggle('hidden');
+  } else {
+    sidebar.classList.toggle('collapsed');
+  }
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.add('hidden');
+}
+
+// ---- DATE TIME ----
+function updateDateTime() {
+  const d = new Date();
+  document.getElementById('currentDateTime').textContent =
+    d.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) +
+    ' — ' + d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ================================================================
+// DASHBOARD CHARTS
+// ================================================================
+let chartsBuilt = false;
+function buildCharts() {
+  if (chartsBuilt) return;
+  chartsBuilt = true;
+  const pal = { brand:'#7c3aed', accent:'#3b82f6', green:'#10b981', yellow:'#f59e0b', grid:'#374151', text:'#6b7280' };
+
+  // Downloads chart
+  new Chart(document.getElementById('downloadsChart'), {
+    type: 'line',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets: [{
+        label: 'Downloads',
+        data: [420, 680, 510, 790, 860, 1240, 980],
+        borderColor: pal.brand, backgroundColor: 'rgba(124,58,237,.12)',
+        borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: pal.brand
+      }]
+    },
+    options: { responsive:true, plugins:{ legend:{display:false} }, scales:{
+      x:{ grid:{color:pal.grid}, ticks:{color:pal.text, font:{size:11}} },
+      y:{ grid:{color:pal.grid}, ticks:{color:pal.text, font:{size:11}} }
+    }}
+  });
+
+  // Category chart
+  const topCats = adminCats.slice(0,6);
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: topCats.map(c => c.name),
+      datasets: [{ data: topCats.map(c => c.count), backgroundColor: ['#7c3aed','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'], borderWidth:0 }]
+    },
+    options: { responsive:true, plugins:{ legend:{ position:'right', labels:{ color:'#9ca3af', font:{size:11} } } } }
+  });
+}
+
+function buildAnalyticsCharts() {
+  const pal = { brand:'#7c3aed', accent:'#3b82f6', grid:'#374151', text:'#6b7280' };
+
+  // Weekly chart
+  const wCtx = document.getElementById('weeklyChart');
+  if (wCtx && !wCtx._built) {
+    wCtx._built = true;
+    new Chart(wCtx, {
+      type:'bar',
+      data:{
+        labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        datasets:[{ label:'Downloads', data:[420,680,510,790,860,1240,980], backgroundColor:'rgba(124,58,237,.7)', borderRadius:8 }]
+      },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{
+        x:{grid:{color:pal.grid},ticks:{color:pal.text,font:{size:11}}},
+        y:{grid:{color:pal.grid},ticks:{color:pal.text,font:{size:11}}}
+      }}
+    });
+  }
+
+  // Traffic sources
+  const tCtx = document.getElementById('trafficChart');
+  if (tCtx && !tCtx._built) {
+    tCtx._built = true;
+    new Chart(tCtx, {
+      type:'pie',
+      data:{
+        labels:['Organic Search','Direct','Social','Referral'],
+        datasets:[{data:[48,28,16,8],backgroundColor:['#7c3aed','#3b82f6','#10b981','#f59e0b'],borderWidth:0}]
+      },
+      options:{responsive:true, plugins:{legend:{position:'right',labels:{color:'#9ca3af',font:{size:11}}}}}
+    });
+  }
+}
+
+// ================================================================
+// ASSETS TABLE
+// ================================================================
+const FMT_BADGE = {PNG:'badge-blue',JPG:'badge-green',GIF:'badge-yellow',MP4:'badge-red',MP3:'badge-purple',PSD:'badge-yellow',ZIP:'badge-gray'};
+
+function buildRecentAssetsTable() {
+  const t = document.getElementById('recentAssetsTable');
+  if (!t) return;
+  const recent = [...adminAssets].slice(-5).reverse();
+  t.innerHTML = `<thead><tr><th>Asset</th><th>Category</th><th>Format</th><th>Downloads</th></tr></thead><tbody>` +
+    recent.map(a => `
+      <tr>
+        <td class="flex items-center gap-3">
+          <img src="${a.thumb}" alt="" class="asset-thumb-sm" />
+          <span class="truncate max-w-36 text-gray-200">${a.title}</span>
+        </td>
+        <td><span class="badge badge-purple capitalize">${a.category}</span></td>
+        <td><span class="badge ${FMT_BADGE[a.format]||'badge-gray'}">${a.format}</span></td>
+        <td class="text-green-400 font-medium">${fmtNum(a.downloads)}</td>
+      </tr>
+    `).join('') + '</tbody>';
+}
+
+function buildFullAssetsTable() {
+  const tbody = document.getElementById('assetsTableBody');
+  if (!tbody) return;
+  // Populate category filter
+  const cf = document.getElementById('assetCatFilter');
+  if (cf && cf.children.length <= 1) {
+    adminCats.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; cf.appendChild(o); });
+  }
+  renderAssetsTableRows(adminAssets);
+  document.getElementById('totalAssetsCount').textContent = adminAssets.length;
+}
+
+function renderAssetsTableRows(assets) {
+  const tbody = document.getElementById('assetsTableBody');
+  if (!tbody) return;
+  document.getElementById('assetCountInfo').textContent = `Showing ${assets.length} of ${adminAssets.length} assets`;
+  tbody.innerHTML = assets.map(a => `
+    <tr id="asset-row-${a.id}">
+      <td><input type="checkbox" class="asset-checkbox rounded" data-id="${a.id}" onchange="updateBulkBtn()" /></td>
+      <td>
+        <div class="flex items-center gap-3">
+          <img src="${a.thumb}" alt="" class="asset-thumb-sm" onerror="this.src=''" />
+          <div>
+            <p class="text-gray-200 font-medium truncate max-w-48">${a.title}</p>
+            <p class="text-gray-500 text-xs">${a.size || '—'}</p>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge badge-purple capitalize">${a.category}</span></td>
+      <td><span class="badge ${FMT_BADGE[a.format]||'badge-gray'}">${a.format}</span></td>
+      <td class="text-green-400 font-medium">${fmtNum(a.downloads)}</td>
+      <td><span class="badge ${a.published !== false ? 'badge-green' : 'badge-red'}">${a.published !== false ? 'Live' : 'Draft'}</span></td>
+      <td>
+        <label class="toggle-switch" style="width:36px;height:20px;">
+          <input type="checkbox" ${a.featured ? 'checked' : ''} onchange="toggleFeatured(${a.id},this.checked)" />
+          <span class="toggle-slider" style="border-radius:20px;"></span>
+        </label>
+      </td>
+      <td>
+        <div class="flex gap-2">
+          <button onclick="openEditModal(${a.id})" class="btn-success btn-sm">Edit</button>
+          <button onclick="promptDelete(${a.id},'asset','${a.title.replace(/'/g,"\\\'")}')" class="btn-danger btn-sm">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterAssetsTable() {
+  const q   = (document.getElementById('assetSearch')?.value || '').toLowerCase();
+  const cat = document.getElementById('assetCatFilter')?.value || '';
+  const fmt = document.getElementById('assetFmtFilter')?.value || '';
+  const filtered = adminAssets.filter(a =>
+    (!q   || a.title.toLowerCase().includes(q)) &&
+    (!cat || a.category === cat) &&
+    (!fmt || a.format === fmt)
+  );
+  renderAssetsTableRows(filtered);
+}
+
+function selectAllAssets(cb) {
+  document.querySelectorAll('.asset-checkbox').forEach(c => c.checked = cb.checked);
+  updateBulkBtn();
+}
+function updateBulkBtn() {
+  const any = [...document.querySelectorAll('.asset-checkbox')].some(c => c.checked);
+  document.getElementById('bulkDeleteBtn').classList.toggle('hidden', !any);
+}
+function bulkDeleteAssets() {
+  const ids = [...document.querySelectorAll('.asset-checkbox:checked')].map(c => parseInt(c.dataset.id));
+  if (!ids.length) return;
+  if (!confirm(`Delete ${ids.length} selected assets? This cannot be undone.`)) return;
+  adminAssets = adminAssets.filter(a => !ids.includes(a.id));
+  saveToStorage();
+  buildFullAssetsTable();
+  toast('🗑 ' + ids.length + ' assets deleted.', 'success');
+}
+function toggleFeatured(id, val) {
+  const a = adminAssets.find(x => x.id === id);
+  if (a) { a.featured = val; saveToStorage(); }
+}
+
+// ---- EDIT MODAL ----
+function openEditModal(id) {
+  const a = adminAssets.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('editAssetId').value     = a.id;
+  document.getElementById('editTitle').value       = a.title;
+  document.getElementById('editFormat').value      = a.format;
+  document.getElementById('editSize').value        = a.size || '';
+  document.getElementById('editThumb').value       = a.thumb;
+  document.getElementById('editDownloadUrl').value = a.downloadUrl;
+  document.getElementById('editTags').value        = a.tags.join(', ');
+  document.getElementById('editFeatured').checked  = !!a.featured;
+  document.getElementById('editPublished').checked = a.published !== false;
+  updateEditThumbPreview();
+  // Populate edit category dropdown
+  const sel = document.getElementById('editCategory');
+  sel.innerHTML = adminCats.map(c => `<option value="${c.id}" ${c.id===a.category?'selected':''}>${c.name}</option>`).join('');
+  document.getElementById('editAssetModal').classList.remove('hidden');
+}
+function closeEditModal() { document.getElementById('editAssetModal').classList.add('hidden'); }
+function updateEditThumbPreview() {
+  const url = document.getElementById('editThumb').value;
+  const img = document.getElementById('editThumbPreview');
+  const ph  = document.getElementById('editThumbPlaceholder');
+  if (url) { img.src = url; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+  else { img.classList.add('hidden'); ph.classList.remove('hidden'); }
+}
+function saveEditedAsset() {
+  const id = parseInt(document.getElementById('editAssetId').value);
+  const a  = adminAssets.find(x => x.id === id);
+  if (!a) return;
+  a.title       = document.getElementById('editTitle').value;
+  a.category    = document.getElementById('editCategory').value;
+  a.format      = document.getElementById('editFormat').value;
+  a.size        = document.getElementById('editSize').value;
+  a.thumb       = document.getElementById('editThumb').value;
+  a.downloadUrl = document.getElementById('editDownloadUrl').value;
+  a.tags        = document.getElementById('editTags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  a.featured    = document.getElementById('editFeatured').checked;
+  a.published   = document.getElementById('editPublished').checked;
+  saveToStorage();
+  buildFullAssetsTable();
+  buildRecentAssetsTable();
+  closeEditModal();
+  toast('✅ Asset updated successfully!', 'success');
+}
+
+// ---- DELETE ----
+function promptDelete(id, type, label) {
+  deleteTargetId = id;
+  deleteTargetType = type;
+  document.getElementById('deleteConfirmMsg').textContent = `Are you sure you want to delete "${label}"? This cannot be undone.`;
+  document.getElementById('deleteConfirmModal').classList.remove('hidden');
+}
+function confirmDelete() {
+  if (deleteTargetType === 'asset') {
+    adminAssets = adminAssets.filter(a => a.id !== deleteTargetId);
+    saveToStorage();
+    buildFullAssetsTable();
+    buildRecentAssetsTable();
+    document.getElementById('totalAssetsCount').textContent = adminAssets.length;
+    toast('🗑 Asset deleted.', 'success');
+  } else if (deleteTargetType === 'category') {
+    adminCats = adminCats.filter(c => c.id !== deleteTargetId);
+    saveToStorage();
+    buildCategoriesAdminGrid();
+    toast('🗑 Category deleted.', 'success');
+  } else if (deleteTargetType === 'music') {
+    adminMusic = adminMusic.filter(m => m.id !== deleteTargetId);
+    saveToStorage();
+    buildMusicTable();
+    toast('🗑 Track deleted.', 'success');
+  }
+  document.getElementById('deleteConfirmModal').classList.add('hidden');
+}
+
+// ================================================================
+// UPLOAD FORM
+// ================================================================
+function populateCategoryDropdowns() {
+  ['newCategory','editCategory','reportCatFilter','assetCatFilter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.children.length > 1) return;
+    adminCats.forEach(c => { const o = document.createElement('option'); o.value=c.id; o.textContent=c.name; el.appendChild(o); });
+  });
+}
+
+function updateThumbPreview() {
+  const url = document.getElementById('newThumb').value;
+  const img = document.getElementById('thumbPreviewImg');
+  const ph  = document.getElementById('thumbPreviewPlaceholder');
+  const ttl = document.getElementById('thumbPreviewTitle');
+  if (url) { img.src=url; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+  else { img.classList.add('hidden'); ph.classList.remove('hidden'); }
+  ttl.textContent = document.getElementById('newTitle').value || 'Asset title will appear here';
+}
+document.addEventListener('input', e => { if (e.target.id === 'newTitle') updateThumbPreview(); });
+
+function saveNewAsset() {
+  const title = document.getElementById('newTitle').value.trim();
+  const cat   = document.getElementById('newCategory').value;
+  const fmt   = document.getElementById('newFormat').value;
+  const thumb = document.getElementById('newThumb').value.trim();
+  const dlUrl = document.getElementById('newDownloadUrl').value.trim();
+  if (!title || !cat || !thumb) { toast('⚠️ Please fill in Title, Category and Thumbnail URL.', 'warning'); return; }
+  const newId = Math.max(...adminAssets.map(a=>a.id), 0) + 1;
+  const rawTags = document.getElementById('newTags').value;
+  adminAssets.push({
+    id: newId, title, category: cat, format: fmt,
+    size: document.getElementById('newSize').value || '—',
+    downloads: 0, likes: 0, thumb,
+    downloadUrl: dlUrl || '#',
+    tags: rawTags ? rawTags.split(',').map(s=>s.trim()).filter(Boolean) : ['new'],
+    featured: document.getElementById('newFeatured').checked,
+    published: document.getElementById('newPublished').checked,
+    description: document.getElementById('newDesc').value
+  });
+  saveToStorage();
+  buildRecentAssetsTable();
+  document.getElementById('totalAssetsCount').textContent = adminAssets.length;
+  toast('🎉 Asset "' + title + '" uploaded successfully!', 'success');
+  resetUploadForm();
+}
+
+function resetUploadForm() {
+  ['newTitle','newCategory','newFormat','newSize','newDownloadUrl','newThumb','newTags','newDesc'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('newFeatured').checked = false;
+  document.getElementById('newPublished').checked = true;
+  document.getElementById('thumbPreviewImg').classList.add('hidden');
+  document.getElementById('thumbPreviewPlaceholder').classList.remove('hidden');
+  document.getElementById('thumbPreviewTitle').textContent = 'Asset title will appear here';
+}
+
+// ---- File drag & drop ----
+function dragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('dragover'); }
+function dragLeave(e) { document.getElementById('uploadZone').classList.remove('dragover'); }
+function dropFile(e) {
+  e.preventDefault(); dragLeave(e);
+  const f = e.dataTransfer.files[0];
+  if (f) simulateUpload(f);
+}
+function fileSelected(input) { if (input.files[0]) simulateUpload(input.files[0]); }
+function simulateUpload(file) {
+  const prog = document.getElementById('uploadProgress');
+  prog.classList.remove('hidden');
+  document.getElementById('uploadFileName').textContent = file.name;
+  let pct = 0;
+  const bar = document.getElementById('uploadBar');
+  const pctEl = document.getElementById('uploadPercent');
+  const iv = setInterval(() => {
+    pct += Math.random() * 15;
+    if (pct >= 100) { pct = 100; clearInterval(iv); toast('✅ File "' + file.name + '" ready!', 'success'); }
+    bar.style.width = pct + '%';
+    pctEl.textContent = Math.round(pct) + '%';
+  }, 200);
+}
+function triggerBulkUpload() { toast('📦 Bulk ZIP upload — connect to your backend storage (Cloudinary/Firebase) to enable.', 'warning'); }
+function triggerCSVUpload() { toast('📋 CSV Import — connect to your backend to enable bulk import.', 'warning'); }
+function downloadCSVTemplate() {
+  const csv = 'title,category,format,size,thumb,downloadUrl,tags,featured\nExample Asset,wallpapers,JPG,2MB,https://example.com/thumb.jpg,https://example.com/file.jpg,"trending,hd",false';
+  const blob = new Blob([csv], { type:'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'assets_template.csv'; a.click();
+}
+function exportCSV() {
+  const header = 'id,title,category,format,size,downloads,likes,featured,tags';
+  const rows = adminAssets.map(a => `${a.id},"${a.title}",${a.category},${a.format},${a.size||''},${a.downloads},${a.likes},${a.featured},"${a.tags.join('|')}"`);
+  const blob = new Blob([header + '\n' + rows.join('\n')], { type:'text/csv' });
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'freeassetshub_assets.csv'; link.click();
+  toast('📋 CSV exported!', 'success');
+}
+
+// ================================================================
+// CATEGORIES
+// ================================================================
+function buildCategoriesAdminGrid() {
+  const grid = document.getElementById('categoriesAdminGrid');
+  if (!grid) return;
+  grid.innerHTML = adminCats.map(cat => `
+    <div class="content-card p-4 flex items-start gap-3">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-2xl flex-shrink-0">${cat.emoji}</div>
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold text-white truncate">${cat.name}</p>
+        <p class="text-gray-400 text-xs mt-0.5">${cat.count.toLocaleString()} assets · ID: ${cat.id}</p>
+        <div class="flex gap-2 mt-3">
+          <button onclick="openEditCatModal('${cat.id}')" class="btn-success btn-sm">Edit</button>
+          <button onclick="promptDelete('${cat.id}','category','${cat.name}')" class="btn-danger btn-sm">Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openAddCategoryModal() {
+  currentEditCatId = null;
+  document.getElementById('catModalTitle').textContent = 'Add Category';
+  ['catName','catId','catEmoji'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('catCount').value = '0';
+  document.getElementById('addCategoryModal').classList.remove('hidden');
+}
+function openEditCatModal(id) {
+  const cat = adminCats.find(c => c.id === id);
+  if (!cat) return;
+  currentEditCatId = id;
+  document.getElementById('catModalTitle').textContent = 'Edit Category';
+  document.getElementById('catName').value  = cat.name;
+  document.getElementById('catId').value    = cat.id;
+  document.getElementById('catEmoji').value = cat.emoji;
+  document.getElementById('catCount').value = cat.count;
+  document.getElementById('addCategoryModal').classList.remove('hidden');
+}
+function closeCatModal() { document.getElementById('addCategoryModal').classList.add('hidden'); }
+function saveCategoryModal() {
+  const name  = document.getElementById('catName').value.trim();
+  const id    = document.getElementById('catId').value.trim();
+  const emoji = document.getElementById('catEmoji').value.trim();
+  const count = parseInt(document.getElementById('catCount').value) || 0;
+  const color = document.getElementById('catColor').value;
+  if (!name || !id || !emoji) { toast('⚠️ Name, ID and Emoji are required.', 'warning'); return; }
+  if (currentEditCatId) {
+    const cat = adminCats.find(c => c.id === currentEditCatId);
+    if (cat) { cat.name=name; cat.id=id; cat.emoji=emoji; cat.count=count; cat.color=color; }
+  } else {
+    if (adminCats.find(c=>c.id===id)) { toast('⚠️ A category with this ID already exists.', 'warning'); return; }
+    adminCats.push({ id, name, emoji, color, count });
+  }
+  saveToStorage();
+  buildCategoriesAdminGrid();
+  populateCategoryDropdowns();
+  closeCatModal();
+  toast('✅ Category saved!', 'success');
+}
+
+// ================================================================
+// MUSIC
+// ================================================================
+function buildMusicTable() {
+  const tbody = document.getElementById('musicTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = adminMusic.map(m => `
+    <tr>
+      <td>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-purple-900/50 flex items-center justify-center text-lg">🎵</div>
+          <span class="text-gray-200">${m.title}</span>
+        </div>
+      </td>
+      <td><span class="badge badge-purple">${m.genre}</span></td>
+      <td class="text-gray-400">${m.duration}</td>
+      <td class="text-gray-400">${m.bpm} BPM</td>
+      <td class="text-green-400">${fmtNum(m.downloads)}</td>
+      <td><span class="badge badge-green">Live</span></td>
+      <td>
+        <div class="flex gap-2">
+          <button onclick="openEditMusicModal(${m.id})" class="btn-success btn-sm">Edit</button>
+          <button onclick="promptDelete(${m.id},'music','${m.title}')" class="btn-danger btn-sm">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openAddMusicModal() {
+  currentEditMusicId = null;
+  document.getElementById('musicModalTitle').textContent = 'Add Music Track';
+  ['musicTitle','musicGenre','musicDuration','musicBpm','musicUrl'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('addMusicModal').classList.remove('hidden');
+}
+function openEditMusicModal(id) {
+  const m = adminMusic.find(x => x.id === id);
+  if (!m) return;
+  currentEditMusicId = id;
+  document.getElementById('musicModalTitle').textContent = 'Edit Track';
+  document.getElementById('musicTitle').value    = m.title;
+  document.getElementById('musicGenre').value    = m.genre;
+  document.getElementById('musicDuration').value = m.duration;
+  document.getElementById('musicBpm').value      = m.bpm;
+  document.getElementById('musicUrl').value      = m.url || '';
+  document.getElementById('addMusicModal').classList.remove('hidden');
+}
+function closeMusicModal() { document.getElementById('addMusicModal').classList.add('hidden'); }
+function saveMusicModal() {
+  const title = document.getElementById('musicTitle').value.trim();
+  if (!title) { toast('⚠️ Track title is required.', 'warning'); return; }
+  if (currentEditMusicId) {
+    const m = adminMusic.find(x => x.id === currentEditMusicId);
+    if (m) {
+      m.title    = title;
+      m.genre    = document.getElementById('musicGenre').value;
+      m.duration = document.getElementById('musicDuration').value;
+      m.bpm      = parseInt(document.getElementById('musicBpm').value) || 0;
+      m.url      = document.getElementById('musicUrl').value;
+    }
+  } else {
+    adminMusic.push({
+      id: Math.max(...adminMusic.map(x=>x.id),0)+1,
+      title, genre: document.getElementById('musicGenre').value,
+      duration: document.getElementById('musicDuration').value,
+      bpm: parseInt(document.getElementById('musicBpm').value)||0,
+      url: document.getElementById('musicUrl').value,
+      downloads: 0
+    });
+  }
+  saveToStorage();
+  buildMusicTable();
+  closeMusicModal();
+  toast('✅ Music track saved!', 'success');
+}
+
+// ================================================================
+// ADS CONFIG
+// ================================================================
+const AD_SLOTS = [
+  { id:'header',   label:'Header Banner Ad',         slot:'1111111111', size:'728×90', position:'Top of all pages' },
+  { id:'content1', label:'In-Content Ad (Rectangle)', slot:'2222222222', size:'336×280', position:'After categories section' },
+  { id:'sidebar',  label:'Sidebar Ad (Vertical)',     slot:'3333333333', size:'160×600', position:'Right sidebar — desktop' },
+  { id:'mobile',   label:'Sticky Mobile Banner',      slot:'4444444444', size:'320×50',  position:'Fixed bottom — mobile only' },
+  { id:'download', label:'Download Modal Ad',         slot:'5555555555', size:'300×100', position:'Inside download unlock modal' },
+  { id:'content2', label:'Category Page Banner',      slot:'6666666666', size:'728×90', position:'Below hero — categories page' },
+  { id:'bottom',   label:'Bottom Page Ad',            slot:'7777777777', size:'728×90', position:'Above footer' },
+];
+
+function buildAdSlots() {
+  const grid = document.getElementById('adSlotsGrid');
+  if (!grid) return;
+  const saved = JSON.parse(localStorage.getItem('adSlots') || '{}');
+  grid.innerHTML = AD_SLOTS.map(slot => `
+    <div class="ad-slot-card">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <p class="text-white font-semibold text-sm">${slot.label}</p>
+          <p class="text-gray-400 text-xs">${slot.size} · ${slot.position}</p>
+        </div>
+        <span class="badge badge-green text-xs">Active</span>
+      </div>
+      <label class="form-label">Ad Slot ID</label>
+      <input type="text" id="slot-${slot.id}" class="form-input font-mono text-sm" placeholder="${slot.slot}" value="${saved[slot.id] || slot.slot}" />
+      <button onclick="saveSlot('${slot.id}')" class="btn-primary btn-sm mt-2 w-full">Save Slot</button>
+    </div>
+  `).join('');
+}
+
+function saveSlot(id) {
+  const saved = JSON.parse(localStorage.getItem('adSlots') || '{}');
+  saved[id] = document.getElementById('slot-'+id).value;
+  localStorage.setItem('adSlots', JSON.stringify(saved));
+  toast('✅ Ad slot saved. Update the HTML file slot ID to apply.', 'success');
+}
+
+function saveAdConfig() {
+  adminSettings.publisherId = document.getElementById('publisherId').value;
+  adminSettings.autoAds     = document.getElementById('autoAdsEnabled').checked;
+  saveToStorage();
+  toast('✅ AdSense configuration saved! Update your HTML files with the new Publisher ID.', 'success');
+}
+
+function saveDownloadSettings() {
+  adminSettings.countdownSecs = parseInt(document.getElementById('countdownSecs').value) || 5;
+  adminSettings.showModalAd   = document.getElementById('showModalAd').checked;
+  adminSettings.showStickyAd  = document.getElementById('showStickyAd').checked;
+  saveToStorage();
+  toast('✅ Download settings saved!', 'success');
+}
+
+// ================================================================
+// BANNER / SECTION SETTINGS
+// ================================================================
+const SECTIONS = [
+  { id:'trending',    label:'Trending Assets Grid',    icon:'🔥' },
+  { id:'categories',  label:'Popular Categories',       icon:'📦' },
+  { id:'music',       label:'Free Music Section',       icon:'🎵' },
+  { id:'invitations', label:'Invitation Cards Section', icon:'💌' },
+  { id:'gifs',        label:'GIF Cards Section',        icon:'🎞' },
+  { id:'wallpapers',  label:'Wallpapers Section',       icon:'🖼' },
+];
+
+function buildSectionToggles() {
+  const el = document.getElementById('sectionToggles');
+  if (!el) return;
+  const saved = JSON.parse(localStorage.getItem('sectionVisibility') || '{}');
+  el.innerHTML = SECTIONS.map(s => `
+    <div class="flex items-center justify-between py-2 border-b border-gray-800 last:border-b-0">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">${s.icon}</span>
+        <span class="text-sm text-gray-300">${s.label}</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="sec-${s.id}" ${saved[s.id] !== false ? 'checked' : ''} onchange="saveSectionVisibility('${s.id}',this.checked)" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  `).join('');
+}
+
+function saveSectionVisibility(id, val) {
+  const saved = JSON.parse(localStorage.getItem('sectionVisibility') || '{}');
+  saved[id] = val;
+  localStorage.setItem('sectionVisibility', JSON.stringify(saved));
+  toast(`✅ Section "${id}" ${val ? 'shown' : 'hidden'} on website.`, 'success');
+}
+
+function saveBannerSettings() {
+  adminSettings.heroTitle1           = document.getElementById('heroTitle1').value;
+  adminSettings.heroTitle2           = document.getElementById('heroTitle2').value;
+  adminSettings.heroSubtitle         = document.getElementById('heroSubtitle').value;
+  adminSettings.heroSearchPlaceholder = document.getElementById('heroSearchPlaceholder').value;
+  adminSettings.stat1Num   = document.getElementById('stat1Num').value;
+  adminSettings.stat1Label = document.getElementById('stat1Label').value;
+  adminSettings.stat2Num   = document.getElementById('stat2Num').value;
+  adminSettings.stat2Label = document.getElementById('stat2Label').value;
+  saveToStorage();
+  toast('✅ Hero banner settings saved!', 'success');
+}
+function saveAnnouncement() {
+  adminSettings.announcement = {
+    text: document.getElementById('announcementText').value,
+    enabled: document.getElementById('announcementEnabled').checked,
+    color: document.getElementById('announcementColor').value
+  };
+  saveToStorage();
+  toast('✅ Announcement saved!', 'success');
+}
+function saveTrendingKeywords() {
+  adminSettings.trendingKeywords = document.getElementById('trendingKeywords').value;
+  saveToStorage();
+  toast('✅ Trending keywords updated!', 'success');
+}
+
+// ================================================================
+// ANALYTICS
+// ================================================================
+function buildTopDownloadsTable() {
+  const tbody = document.getElementById('topDownloadsBody');
+  if (!tbody) return;
+  const top = [...adminAssets].sort((a,b) => b.downloads - a.downloads).slice(0,10);
+  tbody.innerHTML = top.map((a, i) => `
+    <tr>
+      <td class="font-bold text-gray-400">#${i+1}</td>
+      <td>
+        <div class="flex items-center gap-3">
+          <img src="${a.thumb}" alt="" class="asset-thumb-sm" />
+          <span class="text-gray-200 truncate max-w-48">${a.title}</span>
+        </div>
+      </td>
+      <td><span class="badge badge-purple capitalize">${a.category}</span></td>
+      <td class="text-green-400 font-bold">${fmtNum(a.downloads)}</td>
+      <td class="text-red-400">❤ ${fmtNum(a.likes)}</td>
+      <td><span class="text-green-400 text-xs font-semibold">▲ ${Math.floor(Math.random()*25+5)}%</span></td>
+    </tr>
+  `).join('');
+}
+
+function buildDownloadReport() {
+  const tbody = document.getElementById('downloadReportBody');
+  if (!tbody) return;
+  // Populate date inputs with defaults
+  const now = new Date(); const past = new Date(); past.setDate(past.getDate()-30);
+  if (!document.getElementById('reportFromDate').value) document.getElementById('reportFromDate').value = past.toISOString().split('T')[0];
+  if (!document.getElementById('reportToDate').value)   document.getElementById('reportToDate').value   = now.toISOString().split('T')[0];
+
+  const data = [...adminAssets].sort((a,b) => b.downloads - a.downloads).slice(0,15);
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td>
+        <div class="flex items-center gap-3">
+          <img src="${a.thumb}" alt="" class="asset-thumb-sm" />
+          <span class="text-gray-200 truncate max-w-40">${a.title}</span>
+        </div>
+      </td>
+      <td><span class="badge badge-purple capitalize">${a.category}</span></td>
+      <td><span class="badge ${FMT_BADGE[a.format]||'badge-gray'}">${a.format}</span></td>
+      <td class="text-green-400 font-semibold">${fmtNum(a.downloads)}</td>
+      <td class="text-gray-400 text-xs">${randomPastDate()}</td>
+      <td class="text-yellow-400 font-medium">₹${(a.downloads * 0.004).toFixed(2)}</td>
+    </tr>
+  `).join('');
+}
+
+function generateReport() { buildDownloadReport(); toast('📊 Report generated!', 'success'); }
+function exportDownloadCSV() {
+  const rows = adminAssets.map(a => `"${a.title}",${a.category},${a.format},${a.downloads}`);
+  const blob = new Blob(['title,category,format,downloads\n' + rows.join('\n')], {type:'text/csv'});
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download='download_report.csv'; link.click();
+  toast('📋 Download report exported!', 'success');
+}
+
+function randomPastDate() {
+  const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random()*30));
+  return d.toLocaleDateString('en-IN');
+}
+
+// ================================================================
+// PAGE CONTENT EDITOR
+// ================================================================
+const PAGE_CONTENT = {
+  about: {
+    title: 'About Us',
+    fields: [
+      { id:'aboutMission', label:'Mission Statement', type:'textarea', rows:4, value:'FreeAssetsHub was born from a simple belief: great design should be accessible to everyone.' },
+      { id:'aboutFoundedYear', label:'Founded Year', type:'text', value:'2024' },
+      { id:'aboutStats1', label:'Total Assets Stat', type:'text', value:'10K+' },
+      { id:'aboutStats2', label:'Downloads Stat', type:'text', value:'500K+' },
+    ]
+  },
+  contact: {
+    title: 'Contact Page',
+    fields: [
+      { id:'cpHeroText', label:'Contact Hero Description', type:'textarea', rows:2, value:"We're here to help. Reach out anytime!" },
+      { id:'cpPhone', label:'Phone (display)', type:'text', value:'+91 88176 44730' },
+      { id:'cpEmail', label:'Email (display)', type:'text', value:'croma.laxmielectronics@gmail.com' },
+      { id:'cpHours', label:'Support Hours', type:'text', value:'Mon–Sat, 9 AM – 7 PM IST' },
+    ]
+  },
+  privacy: {
+    title: 'Privacy Policy',
+    fields: [
+      { id:'ppLastUpdated', label:'Last Updated Date', type:'text', value:'January 2025' },
+      { id:'ppContactEmail', label:'Privacy Contact Email', type:'text', value:'croma.laxmielectronics@gmail.com' },
+    ]
+  },
+  terms: {
+    title: 'Terms & Conditions',
+    fields: [
+      { id:'tcLastUpdated', label:'Last Updated Date', type:'text', value:'January 2025' },
+      { id:'tcAllowCommercial', label:'Allow Commercial Use', type:'toggle', value:true },
+      { id:'tcAllowMods', label:'Allow Modifications', type:'toggle', value:true },
+    ]
+  },
+  dmca: {
+    title: 'DMCA Policy',
+    fields: [
+      { id:'dmcaEmail', label:'DMCA Contact Email', type:'text', value:'croma.laxmielectronics@gmail.com' },
+      { id:'dmcaPhone', label:'DMCA Contact Phone', type:'text', value:'+91 88176 44730' },
+      { id:'dmcaResponseTime', label:'Response Time', type:'text', value:'72 business hours' },
+    ]
+  }
+};
+
+function selectPageEdit(page) {
+  document.querySelectorAll('[id^="pg-"]').forEach(b => {
+    b.className = 'px-4 py-2 rounded-xl text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all';
+  });
+  document.getElementById('pg-' + page).className = 'px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 text-white transition-all';
+  const panel = document.getElementById('pageEditorPanel');
+  const pg = PAGE_CONTENT[page];
+  if (!pg) return;
+  panel.innerHTML = `
+    <h3 class="font-display font-semibold text-white mb-2">Edit: ${pg.title}</h3>
+    <p class="text-gray-400 text-sm mb-4">Changes will apply to the <strong>${pg.title}</strong> page. Save and re-upload the HTML file to publish.</p>
+    <div class="space-y-4">
+      ${pg.fields.map(f => {
+        if (f.type === 'textarea') return `<div><label class="form-label">${f.label}</label><textarea id="${f.id}" class="form-textarea" rows="${f.rows}">${f.value}</textarea></div>`;
+        if (f.type === 'toggle') return `<div class="flex items-center justify-between p-3 bg-gray-800 rounded-xl"><span class="text-sm text-gray-300">${f.label}</span><label class="toggle-switch"><input type="checkbox" id="${f.id}" ${f.value?'checked':''} /><span class="toggle-slider"></span></label></div>`;
+        return `<div><label class="form-label">${f.label}</label><input type="text" id="${f.id}" class="form-input" value="${f.value}" /></div>`;
+      }).join('')}
+    </div>
+    <div class="flex gap-3 pt-4 mt-4 border-t border-gray-700">
+      <button onclick="savePageContent('${page}')" class="btn-primary flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Save ${pg.title} Content
+      </button>
+      <button onclick="previewPage('${page}')" class="btn-secondary">Preview Page</button>
+    </div>
+  `;
+}
+
+function savePageContent(page) {
+  const pg = PAGE_CONTENT[page];
+  if (!pg) return;
+  if (!adminSettings.pageContent) adminSettings.pageContent = {};
+  adminSettings.pageContent[page] = {};
+  pg.fields.forEach(f => {
+    const el = document.getElementById(f.id);
+    adminSettings.pageContent[page][f.id] = f.type === 'toggle' ? el.checked : el.value;
+  });
+  saveToStorage();
+  toast('✅ ' + pg.title + ' content saved! Open the HTML file to apply changes.', 'success');
+}
+
+function previewPage(page) {
+  const pages = {about:'../about.html',contact:'../contact.html',privacy:'../privacy.html',terms:'../terms.html',dmca:'../dmca.html'};
+  window.open(pages[page], '_blank');
+}
+
+// ================================================================
+// SETTINGS
+// ================================================================
+function loadSettings() {
+  if (adminSettings.seoSiteName) document.getElementById('seoSiteName').value = adminSettings.seoSiteName;
+  if (adminSettings.contactPhone) document.getElementById('contactPhone').value = adminSettings.contactPhone;
+  if (adminSettings.contactEmail) document.getElementById('contactEmail').value = adminSettings.contactEmail;
+  if (adminSettings.countdownSecs) document.getElementById('countdownSecs').value = adminSettings.countdownSecs;
+  if (adminSettings.publisherId) document.getElementById('publisherId').value = adminSettings.publisherId;
+}
+
+function saveSEOSettings() {
+  adminSettings.seoSiteName    = document.getElementById('seoSiteName').value;
+  adminSettings.seoDescription = document.getElementById('seoDescription').value;
+  adminSettings.seoKeywords    = document.getElementById('seoKeywords').value;
+  adminSettings.seoUrl         = document.getElementById('seoUrl').value;
+  adminSettings.seoOgImage     = document.getElementById('seoOgImage').value;
+  saveToStorage();
+  toast('✅ SEO settings saved! Update meta tags in your HTML files.', 'success');
+}
+function saveContactInfo() {
+  adminSettings.contactPhone    = document.getElementById('contactPhone').value;
+  adminSettings.contactEmail    = document.getElementById('contactEmail').value;
+  adminSettings.contactWhatsapp = document.getElementById('contactWhatsapp').value;
+  adminSettings.contactTelegram = document.getElementById('contactTelegram').value;
+  saveToStorage();
+  toast('✅ Contact info saved!', 'success');
+}
+function changePassword() {
+  const old = document.getElementById('oldPass').value;
+  const nw  = document.getElementById('newPass').value;
+  const cnf = document.getElementById('confirmPass').value;
+  if (old !== (adminSettings.adminPass || 'admin123')) { toast('❌ Current password is incorrect.', 'error'); return; }
+  if (nw.length < 8) { toast('⚠️ New password must be at least 8 characters.', 'warning'); return; }
+  if (nw !== cnf) { toast('⚠️ Passwords do not match.', 'warning'); return; }
+  adminSettings.adminPass = nw;
+  saveToStorage();
+  ['oldPass','newPass','confirmPass'].forEach(id => document.getElementById(id).value = '');
+  toast('✅ Password changed successfully!', 'success');
+}
+function saveAppearance() {
+  adminSettings.defaultTheme   = document.getElementById('defaultTheme').value;
+  adminSettings.brandColor     = document.getElementById('brandColor').value;
+  adminSettings.accentColor    = document.getElementById('accentColor').value;
+  adminSettings.assetsPerPage  = parseInt(document.getElementById('assetsPerPage').value) || 20;
+  saveToStorage();
+  toast('✅ Appearance settings saved!', 'success');
+}
+function saveAllSettings() {
+  saveSEOSettings(); saveContactInfo(); saveAppearance();
+  toast('✅ All settings saved successfully!', 'success');
+}
+function clearCache() { toast('🔄 Cache cleared! (localStorage data preserved)', 'success'); }
+function generateSitemap() { toast('🗺 Sitemap generated! Add sitemap.xml to your hosting.', 'success'); }
+function backupData() {
+  const backup = { assets:adminAssets, categories:adminCats, music:adminMusic, settings:adminSettings, timestamp:new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'freeassetshub_backup_' + Date.now() + '.json'; link.click();
+  toast('💾 Backup downloaded!', 'success');
+}
+
+// ================================================================
+// QUICK SEARCH
+// ================================================================
+function quickSearch(q) {
+  if (!q) return;
+  q = q.toLowerCase();
+  const match = adminAssets.find(a => a.title.toLowerCase().includes(q));
+  if (match) { showPanel('assets'); setTimeout(()=>{ document.getElementById('assetSearch').value=q; filterAssetsTable(); },100); }
+}
+
+// ================================================================
+// LOGOUT
+// ================================================================
+function adminLogout() {
+  if (confirm('Log out of admin panel?')) {
+    localStorage.removeItem('adminAuth');
+    window.location.href = 'login.html';
+  }
+}
+
+// ================================================================
+// UTILS
+// ================================================================
+function fmtNum(n) {
+  if (!n) return '0';
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return n.toString();
+}
+
+function toast(msg, type='success') {
+  const container = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  const icon = type==='success'?'✅':type==='error'?'❌':type==='warning'?'⚠️':'ℹ️';
+  t.className = `toast-item toast-${type}`;
+  t.innerHTML = `<span>${icon}</span><span class="flex-1 text-sm">${msg}</span>`;
+  container.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='all .3s'; setTimeout(()=>t.remove(),300); }, 3500);
+}
+
+// Init lucide on every panel switch
+window.addEventListener('click', () => { setTimeout(()=>lucide.createIcons(),50); });
+</script>
+</body>
+</html>
